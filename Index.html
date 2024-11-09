@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Document Categorizer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin-top: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        .input-section {
+            display: flex;
+            margin-bottom: 20px;
+            justify-content: space-between;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            font-size: 1em;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            margin-left: 10px;
+            cursor: pointer;
+            border: none;
+            background-color: #007bff;
+            color: #fff;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .columns {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .column {
+            width: 30%;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .column h3 {
+            margin-top: 0;
+            font-size: 1.2em;
+        }
+
+        .column ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .column ul li {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f9f9f9;
+            border-radius: 3px;
+            cursor: grab;
+            transition: background-color 0.3s;
+        }
+
+        .column ul li:hover {
+            background-color: #e9ecef;
+        }
+
+        .actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .actions button {
+            padding: 5px;
+            font-size: 0.8em;
+            border: none;
+            background-color: #dc3545;
+            color: #fff;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .actions button:first-child {
+            background-color: #007bff;
+        }
+
+        .actions button:first-child:hover {
+            background-color: #0056b3;
+        }
+
+        .actions button:last-child:hover {
+            background-color: #c82333;
+        }
+
+        .search-bar {
+            margin-bottom: 20px;
+        }
+
+        .search-bar input {
+            width: 98%;
+            padding: 10px;
+            font-size: 1em;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="input-section">
+            <input type="text" id="docName" placeholder="Enter document name...">
+            <button onclick="addDocument('Have')">I Have</button>
+            <button onclick="addDocument('NotHave')">I Don't Have</button>
+            <button onclick="addDocument('NotRequired')">Not Required</button>
+        </div>
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Search documents..." oninput="filterDocuments()">
+        </div>
+        <div class="columns">
+            <div class="column" id="haveColumn" ondrop="drop(event)" ondragover="allowDrop(event)">
+                <h3>I Have (<span id="haveCount">0</span> Document)</h3>
+                <ul></ul>
+            </div>
+            <div class="column" id="notHaveColumn" ondrop="drop(event)" ondragover="allowDrop(event)">
+                <h3>I Don't Have (<span id="notHaveCount">0</span> Document)</h3>
+                <ul></ul>
+            </div>
+            <div class="column" id="notRequiredColumn" ondrop="drop(event)" ondragover="allowDrop(event)">
+                <h3>Not Required (<span id="notRequiredCount">0</span> Document)</h3>
+                <ul></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let documentId = 0;
+
+        function addDocument(tag) {
+            const docName = document.getElementById('docName').value;
+            if (!docName) return;
+
+            const li = createDocumentElement(docName);
+
+            switch (tag) {
+                case 'Have':
+                    document.getElementById('haveColumn').querySelector('ul').appendChild(li);
+                    break;
+                case 'NotHave':
+                    document.getElementById('notHaveColumn').querySelector('ul').appendChild(li);
+                    break;
+                case 'NotRequired':
+                    document.getElementById('notRequiredColumn').querySelector('ul').appendChild(li);
+                    break;
+            }
+
+            document.getElementById('docName').value = '';
+            saveToLocalStorage();
+            updateDocumentCounts(); // Update counts after adding
+        }
+
+        function createDocumentElement(docName) {
+            const li = document.createElement('li');
+            li.textContent = docName;
+            li.draggable = true;
+            li.id = `doc-${documentId++}`;
+            li.ondragstart = drag;
+
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'actions';
+
+            const editButton = document.createElement('button');
+            editButton.textContent = 'Edit';
+            editButton.onclick = () => editDocument(li);
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Delete';
+            deleteButton.onclick = () => deleteDocument(li);
+
+            actionsDiv.appendChild(editButton);
+            actionsDiv.appendChild(deleteButton);
+            li.appendChild(actionsDiv);
+
+            return li;
+        }
+
+        function editDocument(li) {
+            const newName = prompt('Edit document name:', li.firstChild.textContent);
+            if (newName) {
+                li.firstChild.textContent = newName;
+                saveToLocalStorage();
+                updateDocumentCounts(); // Update counts after editing
+            }
+        }
+
+        function deleteDocument(li) {
+            li.parentNode.removeChild(li);
+            saveToLocalStorage();
+            updateDocumentCounts(); // Update counts after deleting
+        }
+
+        function allowDrop(event) {
+            event.preventDefault();
+        }
+
+        function drag(event) {
+            event.dataTransfer.setData('text', event.target.id);
+        }
+
+        function drop(event) {
+            event.preventDefault();
+            const data = event.dataTransfer.getData('text');
+            const draggedElement = document.getElementById(data);
+            event.target.querySelector('ul').appendChild(draggedElement);
+            saveToLocalStorage();
+            updateDocumentCounts(); // Update counts after dropping
+        }
+
+        function filterDocuments() {
+            const filterText = document.getElementById('searchInput').value.toLowerCase();
+            const items = document.querySelectorAll('ul li');
+
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(filterText)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function saveToLocalStorage() {
+            const haveDocs = document.getElementById('haveColumn').querySelector('ul').innerHTML;
+            const notHaveDocs = document.getElementById('notHaveColumn').querySelector('ul').innerHTML;
+            const notRequiredDocs = document.getElementById('notRequiredColumn').querySelector('ul').innerHTML;
+
+            localStorage.setItem('haveDocs', haveDocs);
+            localStorage.setItem('notHaveDocs', notHaveDocs);
+            localStorage.setItem('notRequiredDocs', notRequiredDocs);
+        }
+
+        function loadFromLocalStorage() {
+            const haveDocs = localStorage.getItem('haveDocs');
+            const notHaveDocs = localStorage.getItem('notHaveDocs');
+            const notRequiredDocs = localStorage.getItem('notRequiredDocs');
+
+            if (haveDocs) {
+                document.getElementById('haveColumn').querySelector('ul').innerHTML = haveDocs;
+                reattachEventListeners('haveColumn');
+            }
+            if (notHaveDocs) {
+                document.getElementById('notHaveColumn').querySelector('ul').innerHTML = notHaveDocs;
+                reattachEventListeners('notHaveColumn');
+            }
+            if (notRequiredDocs) {
+                document.getElementById('notRequiredColumn').querySelector('ul').innerHTML = notRequiredDocs;
+                reattachEventListeners('notRequiredColumn');
+            }
+
+            updateDocumentCounts(); // Update counts on page load
+        }
+
+        function reattachEventListeners(columnId) {
+            const column = document.getElementById(columnId);
+            const items = column.querySelectorAll('li');
+
+            items.forEach(item => {
+                item.draggable = true;
+                item.ondragstart = drag;
+
+                const editButton = item.querySelector('button:first-child');
+                editButton.onclick = () => editDocument(item);
+
+                const deleteButton = item.querySelector('button:last-child');
+                deleteButton.onclick = () => deleteDocument(item);
+            });
+        }
+
+        function updateDocumentCounts() {
+            const haveCount = document.getElementById('haveColumn').querySelectorAll('ul li').length;
+            const notHaveCount = document.getElementById('notHaveColumn').querySelectorAll('ul li').length;
+            const notRequiredCount = document.getElementById('notRequiredColumn').querySelectorAll('ul li').length;
+
+            document.getElementById('haveCount').textContent = haveCount;
+            document.getElementById('notHaveCount').textContent = notHaveCount;
+            document.getElementById('notRequiredCount').textContent = notRequiredCount;
+        }
+
+        document.addEventListener('DOMContentLoaded', loadFromLocalStorage);
+    </script>
+
+</body>
+
+</html>
