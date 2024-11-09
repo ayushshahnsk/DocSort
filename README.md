@@ -29,4 +29,4 @@ This project is licensed under the Apache License 2.0. You are free to use, modi
 
 - **Apache License 2.0**: See the [LICENSE.txt] file for details.
 
-Copyright (c) 2024 TaskNest
+Copyright (c) 2024 DocSort
